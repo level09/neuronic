@@ -26,9 +26,9 @@ dependencies = [
 ]
 
 [project.urls]
-Home = "https://github.com/yourusername/data-alchemy"
-Documentation = "https://github.com/yourusername/data-alchemy#readme"
-Source = "https://github.com/yourusername/data-alchemy"
+Home = "https://github.com/level09/data-alchemy"
+Documentation = "https://github.com/level09/data-alchemy#readme"
+Source = "https://github.com/level09/data-alchemy"
 
 [project.optional-dependencies]
 dev = [
