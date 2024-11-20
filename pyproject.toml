@@ -3,7 +3,7 @@ requires = ["flit_core>=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "data-alchemy"
+name = "neuronic"
 authors = [{name = "Nidal Alhariri", email = "level09@gmail.com"}]
 dynamic = ["version", "description"]
 readme = "README.md"
@@ -26,9 +26,9 @@ dependencies = [
 ]
 
 [project.urls]
-Home = "https://github.com/level09/data-alchemy"
-Documentation = "https://github.com/level09/data-alchemy#readme"
-Source = "https://github.com/level09/data-alchemy"
+Home = "https://github.com/level09/neuronic"
+Documentation = "https://github.com/level09/neuronic#readme"
+Source = "https://github.com/level09/neuronic"
 
 [project.optional-dependencies]
 dev = [

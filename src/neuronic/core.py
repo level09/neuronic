@@ -5,25 +5,25 @@ from dotenv import load_dotenv
 import json
 
 
-class DataAlchemyError(Exception):
-    """Base exception for DataAlchemy errors."""
+class NeuronicError(Exception):
+    """Base exception for Neuronic errors."""
 
     pass
 
 
-class APIKeyError(DataAlchemyError):
+class APIKeyError(NeuronicError):
     """Raised when there are issues with the API key."""
 
     pass
 
 
-class TransformationError(DataAlchemyError):
+class TransformationError(NeuronicError):
     """Raised when transformation fails."""
 
     pass
 
 
-class DataAlchemy:
+class Neuronic:
     """
     AI-powered data transformation and analysis tool.
     Converts, analyzes, and generates data in various formats.

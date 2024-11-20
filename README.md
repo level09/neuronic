@@ -1,6 +1,6 @@
-# DataAlchemy 🧪
+# Neuronic 🧪
 
-DataAlchemy is a Python library that leverages AI to transform, analyze, and generate data in various formats. Think of it as your Swiss Army knife for data manipulation, powered by OpenAI's GPT models.
+Neuronic is a Python library that leverages AI to transform, analyze, and generate data in various formats. Think of it as your Swiss Army knife for data manipulation, powered by OpenAI's GPT models.
 
 ## 🚀 Features
 
@@ -15,7 +15,7 @@ DataAlchemy is a Python library that leverages AI to transform, analyze, and gen
 
 Install using pip:
 
-    pip install data-alchemy
+    pip install neuronic
 
 ## 🔑 Configuration
 
@@ -25,7 +25,7 @@ Create a `.env` file in your project root:
 
 Or pass your API key directly:
 
-    alchemy = DataAlchemy(api_key="your-api-key-here")
+    neuronic = Neuronic(api_key="your-api-key-here")
 
 ## 💡 Usage Examples
 
@@ -33,12 +33,12 @@ Or pass your API key directly:
 
 Convert CSV data to JSON format:
 
-    from data_alchemy import DataAlchemy
+    from neuronic import Neuronic
     
-    alchemy = DataAlchemy()
+    neuronic = Neuronic()
     
     customer_data = "John Doe, john@example.com, New York"
-    contact_card = alchemy.transform(
+    contact_card = neuronic.transform(
         data=customer_data,
         instruction="Convert this CSV data into a contact card format",
         output_type="json",
@@ -54,7 +54,7 @@ Analyze sales data and get insights:
         {"month": "Feb", "revenue": 1200},
         {"month": "Mar", "revenue": 900}
     ]
-    analysis = alchemy.analyze(
+    analysis = neuronic.analyze(
         data=sales_data,
         question="What's the trend in revenue and which month performed best?"
     )
@@ -63,7 +63,7 @@ Analyze sales data and get insights:
 
 Generate test data with specific requirements:
 
-    test_data = alchemy.generate(
+    test_data = neuronic.generate(
         spec="Create realistic user profiles with name, age, occupation, and favorite color",
         n=3
     )
@@ -73,7 +73,7 @@ Generate test data with specific requirements:
 Generate documentation with specific context:
 
     code_snippet = "print('hello world')"
-    documentation = alchemy.transform(
+    documentation = neuronic.transform(
         data=code_snippet,
         instruction="Generate detailed documentation for this code",
         output_type="json",
@@ -88,7 +88,7 @@ Generate documentation with specific context:
 
 Make simple yes/no decisions:
 
-    sentiment = alchemy.transform(
+    sentiment = neuronic.transform(
         data="This product exceeded my expectations! Highly recommended!",
         instruction="Is this review positive?",
         output_type="bool"
@@ -98,7 +98,7 @@ Make simple yes/no decisions:
 
 Generate complex Python data structures:
 
-    data_structure = alchemy.transform(
+    data_structure = neuronic.transform(
         data="Create a nested data structure representing a family tree",
         instruction="Generate a Python dictionary with at least 3 generations",
         output_type="python"
@@ -130,11 +130,11 @@ Generate complex Python data structures:
 
 ## 🔧 API Reference
 
-### DataAlchemy Class
+### Neuronic Class
 
-Initialize the DataAlchemy class:
+Initialize the Neuronic class:
 
-    alchemy = DataAlchemy(api_key: str = None, model: str = "gpt-3.5-turbo")
+    neuronic = Neuronic(api_key: str = None, model: str = "gpt-3.5-turbo")
 
 ### Methods
 
@@ -142,7 +142,7 @@ Initialize the DataAlchemy class:
 
 Transform data according to instructions:
 
-    result = alchemy.transform(
+    result = neuronic.transform(
         data: Any,                    # Input data
         instruction: str,             # What to do with the data
         output_type: str = "string",  # Desired output format
@@ -154,7 +154,7 @@ Transform data according to instructions:
 
 Analyze data and get insights:
 
-    result = alchemy.analyze(
+    result = neuronic.analyze(
         data: Any,        # Data to analyze
         question: str     # Question about the data
     )
@@ -163,7 +163,7 @@ Analyze data and get insights:
 
 Generate new data based on specifications:
 
-    result = alchemy.generate(
+    result = neuronic.generate(
         spec: str,    # What to generate
         n: int = 1    # Number of items
     )
