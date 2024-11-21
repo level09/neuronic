@@ -1,8 +1,8 @@
 # Neuronic 🧪
 
 
-<p align="center">
-  <img src=".github/images/neuronic.png" alt="Neuronic Logo" width="200"/>
+<p>
+  <img src=".github/images/neuronic.png" alt="Neuronic Logo" width="440"/>
 </p>
 
 
