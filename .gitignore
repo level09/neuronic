@@ -39,4 +39,8 @@ Thumbs.db
 # Project specific
 *.log
 .coverage
-htmlcov/ 
+htmlcov/
+
+# Keep GitHub images
+!.github/images/
+  

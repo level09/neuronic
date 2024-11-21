@@ -1,5 +1,11 @@
 # Neuronic 🧪
 
+
+<p align="center">
+  <img src=".github/images/neuronic.png" alt="Neuronic Logo" width="200"/>
+</p>
+
+
 Neuronic is a Python library that leverages AI to transform, analyze, and generate data in various formats. Think of it as your Swiss Army knife for data manipulation, powered by OpenAI's GPT models.
 
 ## 🚀 Features
