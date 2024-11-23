@@ -1,8 +1,11 @@
-from typing import Union, Literal, Any
+from typing import Union, Any
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
 import json
+from enum import Enum
+from diskcache import Cache
+import tempfile
 
 
 class NeuronicError(Exception):
@@ -23,24 +26,36 @@ class TransformationError(NeuronicError):
     pass
 
 
+class OutputType(Enum):
+    STRING = "string"
+    NUMBER = "number"
+    JSON = "json"
+    LIST = "list"
+    BOOL = "bool"
+    PYTHON = "python"
+
+
 class Neuronic:
     """
     AI-powered data transformation and analysis tool.
     Converts, analyzes, and generates data in various formats.
     """
 
-    OUTPUT_TYPES = Literal["string", "number", "json", "list", "bool", "python"]
-
-    def __init__(self, api_key: str = None, model: str = "gpt-3.5-turbo"):
+    def __init__(
+        self, 
+        api_key: str = None, 
+        model: str = "gpt-3.5-turbo", 
+        cache_dir: str = None,
+        cache_ttl: int = 3600
+    ):
         """
-        Initialize with OpenAI API key from env or direct input.
+        Initialize Neuronic with OpenAI API key and optional caching settings.
 
         Args:
             api_key: OpenAI API key. If None, will look for OPENAI_API_KEY in environment
             model: OpenAI model to use for completions
-
-        Raises:
-            APIKeyError: If no API key is provided or found in environment
+            cache_dir: Directory to store cache. If None, uses system temp directory
+            cache_ttl: Time to live for cached results in seconds (default: 1 hour)
         """
         load_dotenv()
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
@@ -51,71 +66,83 @@ class Neuronic:
 
         self.model = model
         self.client = OpenAI(api_key=self.api_key)
+        
+        # Initialize disk cache
+        cache_dir = cache_dir or os.path.join(tempfile.gettempdir(), 'neuronic_cache')
+        self.cache = Cache(cache_dir)
+        self.cache_ttl = cache_ttl
 
-    def _parse_output(self, result: str, output_type: OUTPUT_TYPES) -> Any:
+    def _parse_output(self, result: str, output_type: OutputType) -> Any:
         """Parse the output string based on desired type."""
         try:
-            # Ensure the result is parsed as JSON if structured output is expected
-            if output_type in ["json", "list", "python"]:
+            if output_type == OutputType.JSON or output_type == OutputType.LIST or output_type == OutputType.PYTHON:
                 return json.loads(result)
-            elif output_type == "number":
+            if output_type == OutputType.NUMBER:
                 return float(result.replace(",", ""))
-            elif output_type == "bool":
+            if output_type == OutputType.BOOL:
                 return result.lower() in ("true", "yes", "1", "y")
-            else:
-                return str(result)
+            return str(result)
         except Exception as e:
-            raise TransformationError(
-                f"Could not convert response to {output_type}: {str(e)}"
-            )
+            raise TransformationError(f"Could not convert response to {output_type.value}: {str(e)}")
+
+    def _get_cache_key(self, data: Any, instruction: str, output_type: OutputType, context: dict = None) -> str:
+        """Generate a unique cache key for the request."""
+        context_str = json.dumps(context) if context else ""
+        return f"{str(data)}|{instruction}|{output_type.value}|{context_str}"
 
     def transform(
         self,
         data: Any,
         instruction: str,
-        output_type: OUTPUT_TYPES = "string",
+        output_type: Union[OutputType, str] = OutputType.STRING,
         example: str = None,
         context: dict = None,
+        use_cache: bool = True,
     ) -> Any:
         """
         Transform data according to instructions.
 
         Args:
-            data: Input data to transform (can be any type)
+            data: Input data to transform
             instruction: What to do with the data
-            output_type: Desired output format
+            output_type: Desired output format (OutputType enum or string)
             example: Optional example of desired output
             context: Optional dictionary of context information
-
-        Returns:
-            Transformed data in specified format
-
-        Raises:
-            TransformationError: If transformation fails
+            use_cache: Whether to use cached results (default: True)
         """
+        # Convert string output_type to enum
+        if isinstance(output_type, str):
+            try:
+                output_type = OutputType(output_type.lower())
+            except ValueError:
+                valid_types = ", ".join(t.value for t in OutputType)
+                raise ValueError(
+                    f"Invalid output_type: {output_type}. Must be one of: {valid_types}"
+                )
+
+        # Check cache if enabled
+        if use_cache:
+            cache_key = self._get_cache_key(data, instruction, output_type, context)
+            if cache_key in self.cache:
+                return self.cache[cache_key]
+
         # Build the prompt
+        prompt = "\n".join([
+            f"Instruction: {instruction}",
+            f"Input Data: {data}",
+            f"Desired Format: {output_type.value}",
+            f"Context: {json.dumps(context)}" if context else "",
+            f"Example Output: {example}" if example else "",
+            "\nOutput (in JSON format):"
+        ])
+
         messages = [
             {
                 "role": "system",
                 "content": "You are a data transformation expert. Process the input according to instructions and return in the exact format specified. Only return the processed output, nothing else.",
             },
+            {"role": "user", "content": prompt}
         ]
-
-        # Enforce structured output
-        prompt = f"""
-Instruction: {instruction}
-Input Data: {data}
-Desired Format: {output_type}
-"""
-        if context:
-            prompt += f"\nContext: {json.dumps(context)}"
-        if example:
-            prompt += f"\nExample Output: {example}"
-
-        # Add a clear structure to the output
-        prompt += "\n\nOutput (in JSON format):"
-
-        messages.append({"role": "user", "content": prompt})
 
         try:
             # Get completion from OpenAI using the new API
@@ -124,7 +151,13 @@ Desired Format: {output_type}
             )
 
             result = response.choices[0].message.content.strip()
-            return self._parse_output(result, output_type)
+            parsed_result = self._parse_output(result, output_type)
+
+            # Cache the result if caching is enabled
+            if use_cache:
+                self.cache.set(cache_key, parsed_result, expire=self.cache_ttl)
+
+            return parsed_result
 
         except Exception as e:
             raise TransformationError(f"OpenAI API error: {str(e)}")
@@ -149,7 +182,7 @@ Desired Format: {output_type}
         return self.transform(
             data=data,
             instruction=f"Analyze this data and answer: {question}",
-            output_type="json",
+            output_type=OutputType.JSON,
             example='{"answer": "detailed answer", "confidence": 0.85, "reasoning": "explanation"}',
         )
 
@@ -174,6 +207,6 @@ Desired Format: {output_type}
         return self.transform(
             data=f"Generate {n} items",
             instruction=spec,
-            output_type="list",
+            output_type=OutputType.LIST,
             context={"count": n},
         )
