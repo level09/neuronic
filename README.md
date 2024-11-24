@@ -1,12 +1,14 @@
 # Neuronic 🧪
 
-
-<p>
-  <img src=".github/images/neuronic.png" alt="Neuronic Logo" width="440"/>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/level09/neuronic/main/.github/images/neuronic.png" alt="Neuronic Logo" width="440"/>
 </p>
 
+Imagine writing Python functions that think, reason, and create - but with predictable, type-safe outputs. Functions that don't just process data, but understand it, while always returning exactly the format you need. Welcome to Neuronic - where we turn ordinary Python code into intelligent, AI-powered modules with built-in validation, caching, and error handling.
 
-Neuronic is a Python library that leverages AI to transform, analyze, and generate data in various formats. Think of it as your Swiss Army knife for data manipulation, powered by OpenAI's GPT models.
+## 🌟 What is Neuronic?
+
+Neuronic makes it simple to create AI-powered Python functions. Write clean, predictable code that leverages GPT models for complex tasks, while maintaining the reliability of traditional programming. Each function comes with built-in validation, type checking, and caching - making AI as dependable as any other Python module.
 
 ## 🚀 Features
 
