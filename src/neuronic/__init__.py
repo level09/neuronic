@@ -1,6 +1,6 @@
 """Neuronic - AI-powered data transformation library"""
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 from .core import Neuronic, OutputType, NeuronicError, APIKeyError, TransformationError
 
