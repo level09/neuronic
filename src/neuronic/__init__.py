@@ -1,9 +1,7 @@
-"""
-Neuronic: AI-powered data transformation and analysis tool.
-"""
+"""Neuronic - AI-powered data transformation library"""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
-from .core import Neuronic
+from .core import Neuronic, OutputType, NeuronicError, APIKeyError, TransformationError
 
-__all__ = ["Neuronic"] 
+__all__ = ["Neuronic", "OutputType", "NeuronicError", "APIKeyError", "TransformationError"] 
