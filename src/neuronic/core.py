@@ -1,4 +1,4 @@
-from typing import Union, Any
+from typing import Union, Any, List
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -6,6 +6,7 @@ import json
 from enum import Enum
 from diskcache import Cache
 import tempfile
+import tiktoken
 
 
 class NeuronicError(Exception):
@@ -90,6 +91,46 @@ class Neuronic:
         context_str = json.dumps(context) if context else ""
         return f"{str(data)}|{instruction}|{output_type.value}|{context_str}"
 
+    def _count_tokens(self, text: str) -> int:
+        """Count the number of tokens in a text string."""
+        try:
+            encoding = tiktoken.encoding_for_model(self.model)
+            return len(encoding.encode(text))
+        except Exception:
+            # Fallback to approximate count if tiktoken fails
+            return len(text.split()) * 1.3
+
+    def _chunk_text(self, text: str, max_tokens: int = 14000) -> List[str]:
+        """Split text into chunks that fit within token limits."""
+        # Reserve tokens for system message and other overhead
+        chunk_limit = max_tokens - 1000  
+        
+        # If text is small enough, return as is
+        if self._count_tokens(text) <= chunk_limit:
+            return [text]
+        
+        chunks = []
+        current_chunk = []
+        current_size = 0
+        
+        # Split by newlines first, then by sentences if needed
+        for line in text.split('\n'):
+            line_tokens = self._count_tokens(line)
+            
+            if current_size + line_tokens <= chunk_limit:
+                current_chunk.append(line)
+                current_size += line_tokens
+            else:
+                if current_chunk:
+                    chunks.append('\n'.join(current_chunk))
+                current_chunk = [line]
+                current_size = line_tokens
+        
+        if current_chunk:
+            chunks.append('\n'.join(current_chunk))
+        
+        return chunks
+
     def transform(
         self,
         data: Any,
@@ -126,25 +167,73 @@ class Neuronic:
             if cache_key in self.cache:
                 return self.cache[cache_key]
 
-        # Build the prompt
-        prompt = "\n".join([
-            f"Instruction: {instruction}",
-            f"Input Data: {data}",
-            f"Desired Format: {output_type.value}",
-            f"Context: {json.dumps(context)}" if context else "",
-            f"Example Output: {example}" if example else "",
-            "\nOutput (in JSON format):"
-        ])
+        # Convert data to string for chunking
+        data_str = str(data)
+        chunks = self._chunk_text(data_str)
+        
+        if len(chunks) == 1:
+            # Use existing logic for single chunk
+            return self._process_transformation(
+                data_str, instruction, output_type, example, context, use_cache
+            )
+        
+        # Process multiple chunks and combine results
+        results = []
+        for i, chunk in enumerate(chunks):
+            chunk_instruction = f"{instruction} (Part {i+1}/{len(chunks)})"
+            chunk_result = self._process_transformation(
+                chunk, chunk_instruction, output_type, example, context, use_cache
+            )
+            results.append(chunk_result)
+        
+        # Combine results based on output type
+        if output_type in (OutputType.LIST, OutputType.JSON):
+            combined = []
+            for result in results:
+                if isinstance(result, list):
+                    combined.extend(result)
+                else:
+                    combined.append(result)
+            return combined
+        else:
+            return '\n'.join(str(r) for r in results)
 
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a data transformation expert. Process the input according to instructions and return in the exact format specified. Only return the processed output, nothing else.",
-            },
-            {"role": "user", "content": prompt}
-        ]
-
+    def _process_transformation(
+        self,
+        data: str,
+        instruction: str,
+        output_type: OutputType,
+        example: str = None,
+        context: dict = None,
+        use_cache: bool = True,
+    ) -> Any:
+        """Process a single transformation chunk."""
         try:
+            # Generate cache key if caching is enabled
+            cache_key = None
+            if use_cache:
+                cache_key = self._get_cache_key(data, instruction, output_type, context)
+                if cache_key in self.cache:
+                    return self.cache[cache_key]
+
+            # Build the prompt
+            prompt = "\n".join([
+                f"Instruction: {instruction}",
+                f"Input Data: {data}",
+                f"Desired Format: {output_type.value}",
+                f"Context: {json.dumps(context)}" if context else "",
+                f"Example Output: {example}" if example else "",
+                "\nOutput (in JSON format):"
+            ])
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are a data transformation expert. Process the input according to instructions and return in the exact format specified. Only return the processed output, nothing else.",
+                },
+                {"role": "user", "content": prompt}
+            ]
+
             # Get completion from OpenAI using the new API
             response = self.client.chat.completions.create(
                 model=self.model, messages=messages, temperature=0.3, max_tokens=500
@@ -154,7 +243,7 @@ class Neuronic:
             parsed_result = self._parse_output(result, output_type)
 
             # Cache the result if caching is enabled
-            if use_cache:
+            if use_cache and cache_key:
                 self.cache.set(cache_key, parsed_result, expire=self.cache_ttl)
 
             return parsed_result
@@ -165,6 +254,7 @@ class Neuronic:
     def analyze(self, data: Any, question: str) -> dict:
         """
         Analyze data and answer questions about it.
+        Handles large datasets by automatically chunking if needed.
 
         Args:
             data: Data to analyze
@@ -179,12 +269,49 @@ class Neuronic:
         Raises:
             TransformationError: If analysis fails
         """
-        return self.transform(
-            data=data,
-            instruction=f"Analyze this data and answer: {question}",
-            output_type=OutputType.JSON,
-            example='{"answer": "detailed answer", "confidence": 0.85, "reasoning": "explanation"}',
-        )
+        # Convert data to string for chunking
+        data_str = str(data)
+        chunks = self._chunk_text(data_str)
+        
+        if len(chunks) == 1:
+            # For single chunk, use simple analysis
+            return self.transform(
+                data=data_str,
+                instruction=f"Analyze this data and answer: {question}",
+                output_type=OutputType.JSON,
+                example='{"answer": "detailed answer", "confidence": 0.85, "reasoning": "explanation"}',
+            )
+        
+        # For multiple chunks, analyze each chunk and combine results
+        chunk_results = []
+        for i, chunk in enumerate(chunks):
+            chunk_result = self.transform(
+                data=chunk,
+                instruction=f"Analyze this part ({i+1}/{len(chunks)}) of the data and answer: {question}",
+                output_type=OutputType.JSON,
+                example='{"answer": "detailed answer", "confidence": 0.85, "reasoning": "explanation"}',
+            )
+            chunk_results.append(chunk_result)
+        
+        # Combine the results
+        combined_answer = ""
+        total_confidence = 0
+        combined_reasoning = []
+        
+        for result in chunk_results:
+            combined_answer += result.get("answer", "") + " "
+            total_confidence += result.get("confidence", 0)
+            if result.get("reasoning"):
+                combined_reasoning.append(result["reasoning"])
+        
+        # Average confidence across chunks
+        avg_confidence = total_confidence / len(chunks) if chunks else 0
+        
+        return {
+            "answer": combined_answer.strip(),
+            "confidence": round(avg_confidence, 2),
+            "reasoning": " ".join(combined_reasoning),
+        }
 
     def generate(self, spec: str, n: int = 1) -> list:
         """

@@ -23,7 +23,8 @@ requires-python = ">=3.8"
 dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=0.19.0",
-    "diskcache>=5.0.0"
+    "diskcache>=5.0.0",
+    "tiktoken>=0.5.0"
 ]
 
 [project.urls]
