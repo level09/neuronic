@@ -45,7 +45,7 @@ class Neuronic:
     def __init__(
         self, 
         api_key: str = None, 
-        model: str = "gpt-4-turbo", 
+        model: str = "gpt-4o", 
         cache_dir: str = None,
         cache_ttl: int = 3600
     ):
