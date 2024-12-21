@@ -1,4 +1,4 @@
-from typing import Union, Any, List
+from typing import Union, Any, List, Callable
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -7,6 +7,8 @@ from enum import Enum
 from diskcache import Cache
 import tempfile
 import tiktoken
+import functools
+import inspect
 
 
 class NeuronicError(Exception):
@@ -223,20 +225,35 @@ class Neuronic:
                 f"Desired Format: {output_type.value}",
                 f"Context: {json.dumps(context)}" if context else "",
                 f"Example Output: {example}" if example else "",
-                "\nOutput (in JSON format):"
             ])
+
+            # Prepare system message based on output type
+            system_message = """You are a data transformation expert. Process the input according to instructions and return in the exact format specified."""
+            
+            if output_type in [OutputType.JSON, OutputType.LIST, OutputType.PYTHON]:
+                system_message += """ Return the output as a valid JSON object. For lists, use a JSON array."""
+            else:
+                system_message += """
+For string output, return plain text. For number output, return just the number.
+For boolean output, return 'true' or 'false'."""
+            
+            system_message += " Only return the processed output, nothing else."
 
             messages = [
                 {
                     "role": "system",
-                    "content": "You are a data transformation expert. Process the input according to instructions and return in the exact format specified. Only return the processed output, nothing else.",
+                    "content": system_message,
                 },
                 {"role": "user", "content": prompt}
             ]
 
             # Get completion from OpenAI using the new API
             response = self.client.chat.completions.create(
-                model=self.model, messages=messages, temperature=0.3, max_tokens=500
+                model=self.model, 
+                messages=messages, 
+                temperature=0.3, 
+                max_tokens=500,
+                response_format={"type": "json_object"} if output_type in [OutputType.JSON, OutputType.LIST, OutputType.PYTHON] else None
             )
 
             result = response.choices[0].message.content.strip()
@@ -337,3 +354,41 @@ class Neuronic:
             output_type=OutputType.LIST,
             context={"count": n},
         )
+
+    def function(self, instruction: str = None, output_type: Union[OutputType, str] = OutputType.STRING):
+        """
+        Decorator to convert a Python function into a neuronic-powered function.
+        
+        Args:
+            instruction (str, optional): Custom instruction for the transformation.
+                                      If None, will be generated from function's docstring and signature.
+            output_type (Union[OutputType, str]): Expected output type.
+        
+        Returns:
+            Callable: Decorated function that uses neuronic for processing.
+        """
+        def decorator(func: Callable):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                # Get function signature and docstring
+                sig = inspect.signature(func)
+                doc = func.__doc__ or ""
+                
+                # Create context from args and kwargs
+                bound_args = sig.bind(*args, **kwargs)
+                context = dict(bound_args.arguments)
+                
+                # Generate instruction if not provided
+                actual_instruction = instruction or f"{doc}\nFunction: {func.__name__}\nInputs: {context}"
+                
+                # Transform the input using neuronic
+                result = self.transform(
+                    data=context,
+                    instruction=actual_instruction,
+                    output_type=output_type,
+                    context={"function_name": func.__name__}
+                )
+                
+                return result
+            return wrapper
+        return decorator

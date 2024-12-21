@@ -1,207 +1,151 @@
 from neuronic import Neuronic
 import json
+from typing import List, Dict
 
-# Initialize
-neuronic = Neuronic()
+# Initialize with OpenAI's flagship model
+neuronic = Neuronic(model="gpt-4o")
 
-# Example 1: Data Transformation
-customer_data = "John Doe, john@example.com, New York"
-contact_card = neuronic.transform(
-    data=customer_data,
-    instruction="Convert this CSV data into a contact card format",
-    output_type="json",
-    example='{"name": "Jane Doe", "email": "jane@example.com", "location": "Los Angeles"}'
-)
-print("Contact Card:", contact_card)
+# Example 1: Recipe Transformer using the new decorator
+@neuronic.function(output_type="json")
+def convert_to_vegetarian(recipe: str) -> Dict:
+    """Convert any food recipe to its vegetarian version while maintaining the flavor profile."""
+    pass
 
-# Example 2: Data Analysis
-sales_data = [
-    {"month": "Jan", "revenue": 1000},
-    {"month": "Feb", "revenue": 1200},
-    {"month": "Mar", "revenue": 900}
-]
-analysis = neuronic.analyze(
-    data=sales_data,
-    question="What's the trend in revenue and which month performed best?"
-)
-print("Analysis:", analysis)
-
-# Example 3: Data Generation
-test_data = neuronic.generate(
-    spec="Create realistic user profiles with name, age, occupation, and favorite color",
-    n=3
-)
-print("Generated Profiles:", test_data)
-
-# Example 4: Complex Transformation with Context
-code_snippet = "print('hello world')"
-documentation = neuronic.transform(
-    data=code_snippet,
-    instruction="Generate detailed documentation for this code",
-    output_type="json",
-    context={
-        "language": "Python",
-        "audience": "beginners",
-        "include_examples": True
-    }
-)
-print("Documentation:", documentation)
-
-# Example 5: Boolean Decision Making
-sentiment = neuronic.transform(
-    data="This product exceeded my expectations! Highly recommended!",
-    instruction="Is this review positive?",
-    output_type="bool"
-)
-print("Is Positive:", sentiment)
-
-# Example 6: Generate Python Data Structures
-data_structure = neuronic.transform(
-    data="Create a nested data structure representing a family tree",
-    instruction="Generate a Python dictionary with at least 3 generations",
-    output_type="python"
-)
-print("Family Tree:", data_structure)
-
-# Example 7: Large Context Processing
-long_text = """
-# Introduction to Machine Learning
-
-Machine learning is a branch of artificial intelligence (AI) and computer science which focuses on the use of data and algorithms to imitate the way that humans learn, gradually improving its accuracy.
-
-## Supervised Learning
-
-Supervised learning is the machine learning task of learning a function that maps an input to an output based on example input-output pairs. It infers a function from labeled training data consisting of a set of training examples.
-
-### Common Algorithms
-1. Linear Regression
-2. Logistic Regression
-3. Decision Trees
-4. Random Forests
-5. Support Vector Machines (SVM)
-6. Neural Networks
-
-## Unsupervised Learning
-
-Unsupervised learning is a type of machine learning algorithm used to draw inferences from datasets consisting of input data without labeled responses.
-
-### Common Algorithms
-1. K-means clustering
-2. Hierarchical clustering
-3. Principal Component Analysis (PCA)
-4. Independent Component Analysis (ICA)
-
-## Reinforcement Learning
-
-Reinforcement learning is an area of machine learning concerned with how intelligent agents ought to take actions in an environment in order to maximize the notion of cumulative reward.
-
-### Key Concepts
-1. Agent
-2. Environment
-3. State
-4. Action
-5. Reward
-
-## Deep Learning
-
-Deep learning is part of a broader family of machine learning methods based on artificial neural networks with representation learning.
-
-### Popular Architectures
-1. Convolutional Neural Networks (CNN)
-2. Recurrent Neural Networks (RNN)
-3. Long Short-Term Memory (LSTM)
-4. Transformers
-
-## Applications
-
-Machine learning has numerous real-world applications:
-- Image and Speech Recognition
-- Natural Language Processing
-- Recommendation Systems
-- Autonomous Vehicles
-- Medical Diagnosis
-- Financial Trading
-- Fraud Detection
-
-## Challenges
-
-Common challenges in machine learning:
-1. Data Quality and Quantity
-2. Overfitting and Underfitting
-3. Feature Selection
-4. Model Selection
-5. Computational Resources
-6. Interpretability
-7. Ethical Considerations
-
-## Future Directions
-
-The field of machine learning continues to evolve with:
-- Automated Machine Learning (AutoML)
-- Few-shot Learning
-- Meta Learning
-- Quantum Machine Learning
-- Edge Computing
+meat_recipe = """
+Classic Beef Burger:
+- 500g ground beef
+- 2 burger buns
+- 1 onion
+- 2 slices cheese
+- lettuce and tomato
+- salt and pepper
 """
 
-# Process the long text with multiple questions
-summary = neuronic.transform(
-    data=long_text,
-    instruction="Create a concise summary of this machine learning text, highlighting the main topics and key points",
-    output_type="string"
-)
-print("\nSummary:", summary)
+veggie_version = convert_to_vegetarian(meat_recipe)
+print("Vegetarian Recipe:", json.dumps(veggie_version, indent=2))
 
-# Extract structured information
-topics = neuronic.transform(
-    data=long_text,
-    instruction="Extract all main topics and their key algorithms/concepts into a structured format",
-    output_type="json",
-    example='''
-    {
-        "topics": [
-            {
-                "name": "Supervised Learning",
-                "algorithms": ["Linear Regression", "Logistic Regression"]
-            }
-        ]
-    }
-    '''
-)
-print("\nStructured Topics:", json.dumps(topics, indent=2))
+# Example 2: Story Generator with Context
+@neuronic.function(output_type="string")
+def generate_mini_story(character: str, setting: str, mood: str) -> str:
+    """Create a three-sentence story based on the given character, setting, and mood."""
+    pass
 
-# Generate study questions
-questions = neuronic.transform(
-    data=long_text,
-    instruction="Generate 5 comprehensive study questions based on this content",
-    output_type="list"
+story = generate_mini_story(
+    character="a curious robot",
+    setting="ancient library",
+    mood="mysterious"
 )
-print("\nStudy Questions:", json.dumps(questions, indent=2))
+print("\nGenerated Story:", story)
 
-# Example 8: Large Dataset Analysis
-large_sales_data = [
-    {"month": "Jan", "revenue": 1000, "products": ["A", "B", "C"], "region": "North"},
-    {"month": "Feb", "revenue": 1200, "products": ["B", "C", "D"], "region": "North"},
-    {"month": "Mar", "revenue": 900, "products": ["A", "C", "E"], "region": "South"},
-    # ... (repeated 100 times with variations to make it large)
-] * 100  # This makes the dataset large enough to trigger chunking
+# Example 3: Smart Data Cleaning
+messy_data = [
+    {"name": "jOHn DOE  ", "email": "JOHN@example.com", "age": "twenty five"},
+    {"name": "Jane smith", "email": "jane@example", "age": "28"},
+    {"name": "  Bob Wilson", "email": "bob@test.com", "age": "thirty"},
+]
 
-# Analyze the large dataset
-analysis_result = neuronic.analyze(
-    data=large_sales_data,
-    question="What are the main trends in revenue across regions and what products are most frequently sold?"
+@neuronic.function(output_type="json")
+def clean_user_data(users: List[Dict]) -> List[Dict]:
+    """
+    Clean and standardize user data:
+    - Properly capitalize names
+    - Validate and fix email addresses
+    - Convert age to numbers
+    - Remove extra whitespace
+    """
+    pass
+
+clean_data = clean_user_data(messy_data)
+print("\nCleaned Data:", json.dumps(clean_data, indent=2))
+
+# Example 4: Code Style Converter
+python_code = """
+def calculate_stats(numbers):
+    total = 0
+    for n in numbers:
+        total += n
+    avg = total / len(numbers)
+    return {'sum': total, 'average': avg}
+"""
+
+@neuronic.function(output_type="string")
+def convert_to_functional_style(code: str) -> str:
+    """Convert imperative Python code to a more functional programming style using list comprehensions, map, filter, etc."""
+    pass
+
+functional_code = convert_to_functional_style(python_code)
+print("\nFunctional Style Code:", functional_code)
+
+# Example 5: Smart Text Analysis
+movie_review = """
+Inception (2010) blew my mind! The visuals were stunning and the plot kept me guessing.
+While some found it confusing, I thought the complexity added to its charm.
+The ending still has people debating to this day. 🎬 Must watch! Rating: 9/10
+"""
+
+analysis = neuronic.analyze(
+    data=movie_review,
+    question="What aspects of the movie did the reviewer focus on and what's their overall sentiment?"
 )
-print("\nLarge Dataset Analysis:")
-print("Answer:", analysis_result["answer"])
-print("Confidence:", analysis_result["confidence"])
-print("Reasoning:", analysis_result["reasoning"])
+print("\nReview Analysis:")
+print(f"Answer: {analysis['answer']}")
+print(f"Confidence: {analysis['confidence']}")
+print(f"Reasoning: {analysis['reasoning']}")
 
-# Another example with the previous long ML text
-ml_analysis = neuronic.analyze(
-    data=long_text,  # Using the long_text from previous example
-    question="What are the key differences between supervised, unsupervised, and reinforcement learning according to the text?"
+# Example 6: Creative Data Generation
+emoji_personas = neuronic.generate(
+    spec="""Create unique emoji-based character profiles with:
+    - Emoji combination for appearance
+    - Personality trait
+    - Favorite hobby
+    - Life motto""",
+    n=3
 )
-print("\nML Text Analysis:")
-print("Answer:", ml_analysis["answer"])
-print("Confidence:", ml_analysis["confidence"])
-print("Reasoning:", ml_analysis["reasoning"]) 
+print("\nEmoji Personas:", json.dumps(emoji_personas, indent=2))
+
+# Example 7: Smart Format Conversion
+markdown_notes = """
+# Meeting Notes - Project Phoenix
+## Attendees
+- Alice (Team Lead)
+- Bob (Developer)
+- Charlie (Designer)
+
+## Action Items
+1. Update UI mockups
+2. Fix login bug
+3. Plan next sprint
+
+## Next Meeting
+Thursday, 2pm PST
+"""
+
+@neuronic.function(output_type="json")
+def convert_to_task_board(notes: str) -> Dict:
+    """Convert meeting notes into a structured task board format with status tracking."""
+    pass
+
+task_board = convert_to_task_board(markdown_notes)
+print("\nTask Board:", json.dumps(task_board, indent=2))
+
+# Example 8: Smart Data Enrichment
+basic_product = {
+    "name": "Vintage Leather Backpack",
+    "price": 79.99,
+    "category": "bags"
+}
+
+@neuronic.function(output_type="json")
+def enrich_product_data(product: Dict) -> Dict:
+    """
+    Enhance product data with:
+    - SEO-friendly description
+    - Target audience
+    - Suggested keywords
+    - Related products
+    - Seasonal relevance
+    """
+    pass
+
+enriched_product = enrich_product_data(basic_product)
+print("\nEnriched Product Data:", json.dumps(enriched_product, indent=2)) 
