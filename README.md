@@ -20,6 +20,30 @@ def convert_to_vegetarian(recipe: str) -> dict:
 veggie_recipe = convert_to_vegetarian("Classic Beef Burger with bacon")
 ```
 
+## 🌟 Real-Time Streaming
+
+Watch your AI functions generate responses in real-time:
+
+```python
+@neuronic.function(output_type="string", stream=True)
+def write_story(prompt: str) -> str:
+    """Write a creative story based on the given prompt."""
+    pass
+
+# See the story being written in real-time
+for chunk in write_story("A curious robot discovers an ancient library"):
+    print(chunk, end="")
+
+# Or use the transform method directly
+neuronic = Neuronic()
+for chunk in neuronic.transform(
+    data="Explain quantum computing",
+    instruction="Write a clear, step-by-step explanation",
+    stream=True
+):
+    print(chunk, end="")
+```
+
 ## 🌟 What is Neuronic?
 
 Neuronic is your gateway to building intelligent Python applications powered by GPT-4o. Create functions that can understand context, extract insights, and solve complex problems - all while maintaining the reliability and predictability of traditional programming. With built-in validation, type checking, and caching, Neuronic makes AI as dependable as any other Python module.
@@ -27,6 +51,7 @@ Neuronic is your gateway to building intelligent Python applications powered by 
 ## 🚀 Features
 
 - **🎯 Smart Function Decorator:** Transform any Python function into an AI-powered one with a simple decorator
+- **🧠 Real-Time Streaming:** Watch AI responses generate in real-time with built-in streaming support
 - **🧠 Intelligent Understanding:** Create functions that truly understand your data, extracting meaning and insights
 - **🗣️ Natural Language Processing:** Process text like a human - analyze sentiment, extract key information, and understand context
 - **✍️ Creative Generation:** Generate human-quality content, from documentation to test data, tailored to your specifications
@@ -127,14 +152,17 @@ print(f"Reasoning: {analysis['reasoning']}")
 ### Core Methods
 
 ```python
-# Transform data
+# Transform data with streaming
 result = neuronic.transform(
     data=input_data,               # What to transform
     instruction="your instruction", # How to transform it
     output_type="string",          # What format you want
+    stream=True,                   # Enable streaming
     example=None,                  # Optional example
     context=None                   # Optional context
 )
+for chunk in result:
+    print(chunk, end="")
 
 # Analyze data
 insights = neuronic.analyze(
@@ -149,6 +177,33 @@ new_data = neuronic.generate(
 )
 ```
 
+### Streaming Functions
+
+```python
+# Create streaming functions for long-form content
+@neuronic.function(output_type="string", stream=True)
+def write_blog_post(topic: str, style: str) -> str:
+    """Write a detailed blog post in the specified style."""
+    pass
+
+# Watch the blog post being written in real-time
+for chunk in write_blog_post(
+    topic="The Future of AI",
+    style="conversational"
+):
+    print(chunk, end="")
+
+# Stream JSON responses
+@neuronic.function(output_type="json", stream=True)
+def analyze_text_stream(text: str) -> dict:
+    """Analyze text and return structured data with streaming."""
+    pass
+
+# Note: JSON streaming ensures valid JSON output
+for chunk in analyze_text_stream("Your text here"):
+    print(chunk, end="")
+```
+
 ## 🎓 Best Practices
 
 1. **🔐 Security First**
@@ -157,11 +212,20 @@ new_data = neuronic.generate(
 
 2. **⚡ Performance Tips**
    - Use caching for repeated operations
+   - Enable streaming for long-running operations
    - Batch similar requests when possible
+   - Be mindful of token limits when streaming
 
 3. **🛡️ Error Handling**
    - Always handle exceptions gracefully
    - Validate outputs match expected formats
+   - Handle streaming interruptions properly
+
+4. **🔄 Streaming Guidelines**
+   - Use streaming for long-form content generation
+   - Handle partial outputs appropriately
+   - Consider disabling streaming for small, quick operations
+   - Remember streaming bypasses caching
 
 ## 📜 License
 

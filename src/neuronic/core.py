@@ -1,4 +1,4 @@
-from typing import Union, Any, List, Callable
+from typing import Union, Any, List, Callable, Iterator
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -141,7 +141,8 @@ class Neuronic:
         example: str = None,
         context: dict = None,
         use_cache: bool = True,
-    ) -> Any:
+        stream: bool = False,
+    ) -> Union[Any, Iterator[str]]:
         """
         Transform data according to instructions.
 
@@ -152,6 +153,7 @@ class Neuronic:
             example: Optional example of desired output
             context: Optional dictionary of context information
             use_cache: Whether to use cached results (default: True)
+            stream: Whether to stream the response (default: False)
         """
         # Convert string output_type to enum
         if isinstance(output_type, str):
@@ -163,20 +165,22 @@ class Neuronic:
                     f"Invalid output_type: {output_type}. Must be one of: {valid_types}"
                 )
 
-        # Check cache if enabled
-        if use_cache:
-            cache_key = self._get_cache_key(data, instruction, output_type, context)
-            if cache_key in self.cache:
-                return self.cache[cache_key]
-
         # Convert data to string for chunking
         data_str = str(data)
         chunks = self._chunk_text(data_str)
+
+        # For streaming, we don't support chunking yet
+        if stream:
+            if len(chunks) > 1:
+                raise ValueError("Streaming is not supported for large inputs that require chunking. Please reduce input size or disable streaming.")
+            return self._process_transformation(
+                data_str, instruction, output_type, example, context, use_cache, stream
+            )
         
         if len(chunks) == 1:
             # Use existing logic for single chunk
             return self._process_transformation(
-                data_str, instruction, output_type, example, context, use_cache
+                data_str, instruction, output_type, example, context, use_cache, False
             )
         
         # Process multiple chunks and combine results
@@ -184,7 +188,7 @@ class Neuronic:
         for i, chunk in enumerate(chunks):
             chunk_instruction = f"{instruction} (Part {i+1}/{len(chunks)})"
             chunk_result = self._process_transformation(
-                chunk, chunk_instruction, output_type, example, context, use_cache
+                chunk, chunk_instruction, output_type, example, context, use_cache, False
             )
             results.append(chunk_result)
         
@@ -208,9 +212,14 @@ class Neuronic:
         example: str = None,
         context: dict = None,
         use_cache: bool = True,
-    ) -> Any:
+        stream: bool = False,
+    ) -> Union[Any, Iterator[str]]:
         """Process a single transformation chunk."""
         try:
+            # Don't use cache for streaming responses
+            if stream:
+                use_cache = False
+
             # Generate cache key if caching is enabled
             cache_key = None
             if use_cache:
@@ -253,8 +262,27 @@ For boolean output, return 'true' or 'false'."""
                 messages=messages, 
                 temperature=0.3, 
                 max_tokens=500,
-                response_format={"type": "json_object"} if output_type in [OutputType.JSON, OutputType.LIST, OutputType.PYTHON] else None
+                response_format={"type": "json_object"} if output_type in [OutputType.JSON, OutputType.LIST, OutputType.PYTHON] else None,
+                stream=stream
             )
+
+            if stream:
+                def stream_generator():
+                    collected_content = ""
+                    for chunk in response:
+                        if chunk.choices[0].delta.content:
+                            content = chunk.choices[0].delta.content
+                            collected_content += content
+                            # For JSON/List/Python, only yield when we have valid JSON
+                            if output_type in [OutputType.JSON, OutputType.LIST, OutputType.PYTHON]:
+                                try:
+                                    json.loads(collected_content)
+                                    yield content
+                                except json.JSONDecodeError:
+                                    continue
+                            else:
+                                yield content
+                return stream_generator()
 
             result = response.choices[0].message.content.strip()
             parsed_result = self._parse_output(result, output_type)
@@ -355,7 +383,12 @@ For boolean output, return 'true' or 'false'."""
             context={"count": n},
         )
 
-    def function(self, instruction: str = None, output_type: Union[OutputType, str] = OutputType.STRING):
+    def function(
+        self, 
+        instruction: str = None, 
+        output_type: Union[OutputType, str] = OutputType.STRING,
+        stream: bool = False
+    ):
         """
         Decorator to convert a Python function into a neuronic-powered function.
         
@@ -363,6 +396,7 @@ For boolean output, return 'true' or 'false'."""
             instruction (str, optional): Custom instruction for the transformation.
                                       If None, will be generated from function's docstring and signature.
             output_type (Union[OutputType, str]): Expected output type.
+            stream (bool): Whether to stream the response (default: False)
         
         Returns:
             Callable: Decorated function that uses neuronic for processing.
@@ -386,7 +420,8 @@ For boolean output, return 'true' or 'false'."""
                     data=context,
                     instruction=actual_instruction,
                     output_type=output_type,
-                    context={"function_name": func.__name__}
+                    context={"function_name": func.__name__},
+                    stream=stream
                 )
                 
                 return result
