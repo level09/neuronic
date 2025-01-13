@@ -6,6 +6,11 @@
 
 Imagine Python functions that can think, reason, and create - functions that understand natural language, analyze complex data patterns, and generate creative solutions. Welcome to Neuronic - where we transform ordinary Python code into intelligent, AI-powered modules that bring GPT's cognitive capabilities directly into your codebase, complete with enterprise-grade validation, caching, and error handling.
 
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/level09/neuronic/main/.github/images/neuronic-features.png" alt="Neuronic chart" width="440"/>
+</p>
+
 ## ✨ Magic in Three Lines
 
 ```python
